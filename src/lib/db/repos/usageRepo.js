@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { getMeta, setMeta } from "../helpers/metaStore.js";
+import { isRequestLoggingEnabled } from "open-sse/utils/requestLogging.js";
 
 function maskApiKey(key) {
   if (!key || typeof key !== "string") return null;
@@ -240,6 +241,7 @@ export async function getActiveRequests() {
 }
 
 export async function saveRequestUsage(entry) {
+  if (!isRequestLoggingEnabled()) return;
   try {
     const db = await getAdapter();
 

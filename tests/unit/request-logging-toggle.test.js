@@ -99,8 +99,7 @@ describe.sequential("ENABLE_REQUEST_LOGS", () => {
     expect(logSpy).toHaveBeenCalledTimes(4);
   });
 
-  it("does not persist request details or usage when explicitly disabled", async () => {
-    await loadDb("false");
+  it("does not persist request details or usage when explicitly disabled", async () => {    await loadDb("false");
     const timestamp = new Date().toISOString();
     await db.saveRequestDetail({
       id: "disabled-detail",
@@ -161,5 +160,46 @@ describe.sequential("ENABLE_REQUEST_LOGS", () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 25));
     expect(await db.getRequestDetailById("unset-detail")).toBeNull();
+  });
+
+  it("stops tracking live activity when explicitly disabled", async () => {
+    await loadDb("false");
+    // usageRepo binds its pending state to this global object at import;
+    // replace the contents so no other test can leak into this assertion.
+    if (global._pendingRequests) {
+      global._pendingRequests.byModel = {};
+      global._pendingRequests.byAccount = {};
+    }
+    let pendingFired = 0;
+    const onPending = () => { pendingFired++; };
+    db.statsEmitter.on("pending", onPending);
+    try {
+      db.trackPendingRequest("gpt-test", "openai", "conn-1", true);
+      expect((await db.getActiveRequests()).activeRequests).toEqual([]);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      expect(pendingFired).toBe(0);
+    } finally {
+      db.statsEmitter.off("pending", onPending);
+    }
+  });
+
+  it("tracks live activity when explicitly enabled", async () => {
+    await loadDb("true");
+    if (global._pendingRequests) {
+      global._pendingRequests.byModel = {};
+      global._pendingRequests.byAccount = {};
+    }
+    const onPending = () => {};
+    db.statsEmitter.on("pending", onPending);
+    try {
+      db.trackPendingRequest("gpt-test", "openai", "conn-1", true);
+      const active = (await db.getActiveRequests()).activeRequests;
+      expect(active).toHaveLength(1);
+      expect(active[0]).toMatchObject({ model: "gpt-test", provider: "openai", count: 1 });
+      db.trackPendingRequest("gpt-test", "openai", "conn-1", false);
+      expect((await db.getActiveRequests()).activeRequests).toEqual([]);
+    } finally {
+      db.statsEmitter.off("pending", onPending);
+    }
   });
 });

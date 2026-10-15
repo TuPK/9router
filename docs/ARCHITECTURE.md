@@ -520,7 +520,7 @@ Runtime visibility sources:
 - optional deep request/translation files under `logs/` when `ENABLE_REQUEST_LOGS=true`
 - dashboard usage endpoints (`/api/usage/*`) for UI consumption
 
-When `ENABLE_REQUEST_LOGS=false`, new console output and request-related SQLite writes are suppressed. When it is unset, the existing UI observability fallback remains available. Usage/request logging settings are process-level and require a restart after changes; operational behavior should be validated with the deployment's logging policy.
+When `ENABLE_REQUEST_LOGS=false`, new console output and request-related SQLite writes are suppressed, and the in-flight activity tracker (`trackPendingRequest`) stops feeding the dashboard's live topology animation, so it stays idle. When it is unset, the existing UI observability fallback remains available. Usage/request logging settings are process-level and require a restart after changes; operational behavior should be validated with the deployment's logging policy.
 
 ## Security-Sensitive Boundaries
 

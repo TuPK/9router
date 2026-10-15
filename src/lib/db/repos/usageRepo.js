@@ -152,6 +152,10 @@ async function calculateCost(provider, model, tokens) {
 }
 
 export function trackPendingRequest(model, provider, connectionId, started, error = false) {
+  // When request logging is explicitly disabled, do not populate the in-memory
+  // live-activity tracker: getActiveRequests/getUsageStats stay empty and the
+  // SSE "pending" push goes silent, so the dashboard topology animation is idle.
+  if (!isRequestLoggingEnabled()) return;
   const modelKey = provider ? `${model} (${provider})` : model;
   const timerKey = `${connectionId}|${modelKey}`;
 
